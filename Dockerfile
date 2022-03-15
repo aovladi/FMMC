@@ -11,10 +11,4 @@ RUN useradd -ms /bin/bash $user \
 
 USER $user
 
-WORKDIR /home/$user
-
-RUN git clone https://github.com/aovladi/FMMC.git
-
-WORKDIR /home/$user/FMMC
-
 LABEL maintainer="Olga_Andreeva"
