@@ -104,7 +104,7 @@ if  args.dataset == "Tamil":
     for idx in range(5, 24):
         columns.append('Subj_{}'.format(idx))
 # name of csv file  
-filename = args.dir + "{}_Subject_{}_{}.csv".format(args.dataset, args.subject, time.strftime("%c"))
+filename = args.dir + "{}_Subject_{}.csv".format(args.dataset, args.subject)
     
 # writing to csv file  
 with open(filename, 'w') as csvfile:  
