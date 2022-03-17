@@ -20,8 +20,8 @@ from pathlib import Path
 from sklearn.preprocessing import StandardScaler
 from math import floor, inf
 
-data_directory = Path(__file__).parent.parent/"AAAIActRec/data_loading/npy"
-tamil_directory = Path(__file__).parent.parent/"wds_tamil/tars"
+data_directory = Path(__file__).parent/"AAAIActRec/data_loading/npy"
+tamil_directory = Path(__file__).parent/"wds_tamil/tars"
 
 _UCI_DATA_FILES = {
     "X": data_directory/"UCI_full_data_tensor.npy",
