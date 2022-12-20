@@ -1,13 +1,8 @@
+import curves
 import numpy as np
 import os
 import torch
 import torch.nn.functional as F
-
-import curves
-
-
-#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 def l2_regularizer(weight_decay):
     def regularizer(model):
