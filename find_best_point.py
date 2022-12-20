@@ -11,21 +11,14 @@ def evaluate(array, beta=3):
 
 	#Compute evenness score
 	#Compute entropy
-
 	h = 0
 	for entry in array:
-	 h+=(entry/np.sum(array))*np.log(entry/np.sum(array))
-	 
+	 h+=(entry/np.sum(array))*np.log(entry/np.sum(array))	 
 	h *= -1
-
 	#Compute hmax
-
 	hmax = np.log(len(array))
-
 	#J
-
 	j = h/hmax
-
 	hmean = (1+beta**2)*a*j/(beta**2*a+j)
 	
 	return hmean, a, j
