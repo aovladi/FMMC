@@ -20,7 +20,7 @@ from pathlib import Path
 from sklearn.preprocessing import StandardScaler
 from math import floor, inf
 
-data_directory = Path(__file__).parent/"AAAIActRec/data_loading/npy"
+data_directory = Path(__file__).resolve().parent.parent/"Activity-Recognition-Data/data_loading/npy"
 tamil_directory = Path(__file__).parent/"wds_tamil/tars"
 
 _UCI_DATA_FILES = {
@@ -58,11 +58,21 @@ _UTK_labels = [
 
 _TAMIL_labels = range(156)
 
+def get_mask(start, length):
+     if start+10 > length:
+             diff = length-start
+             mask = list(range(start, length))
+             mask.extend(list(range(diff)))
+     else:
+             mask = list(range(start,start+10))
+     return mask
+
+
 def ActivityRecognitionDataset(
     dataset="UTK", 
     cross_val_subject_id_start=25,  
     scale=True,
-    batch_size = 125
+    batch_size = 120
 ):
     """
     Loads numpy data, then separates out training and test data and 
@@ -101,17 +111,28 @@ def ActivityRecognitionDataset(
     # Get one-hot labels tensor
     one_hot_labels = F.one_hot(torch.from_numpy(int_labels), len(unique_labels))
 
+    # Not used due to the requirement of a validation set: 
     # The ids in the numpy array are integers from 101 to 130.
     # We remap them to integers from 0 to 29 here so that
     # the calling function doesn't need to know what's
     # in the ids array when this function is called.
-    test_mask = (ids >= unique_ids[cross_val_subject_id_start]) & (ids <= unique_ids[cross_val_subject_id_start+4])
+    #test_mask = (ids >= unique_ids[cross_val_subject_id_start]) & (ids <= unique_ids[cross_val_subject_id_start+4])
+    
+    unique_holdout_idx = get_mask(cross_val_subject_id_start,len(unique_ids))
+    hold_out_idx=list(map(unique_ids.__getitem__, unique_holdout_idx))
+    print(hold_out_idx)
+    hold_out_mask = [True if value in hold_out_idx else False for value in ids]
+    print(f"test idx: {hold_out_idx[len(hold_out_idx)//2:]}")
+    print(f"val idx: {hold_out_idx[:len(hold_out_idx)//2]}")
+    test_mask = [True if value in hold_out_idx[len(hold_out_idx)//2:] else False for value in ids]
+    val_mask = [True if value in  hold_out_idx[:len(hold_out_idx)//2] else False for value in ids]
     
     
     # In leave-one-out cross-validation, we aren't using a 
     # validation set (we should probably skim off a validation set),
     # so what's not in training is in testing.
-    train_mask = np.invert(test_mask)
+    train_mask = np.invert(hold_out_mask)
+    print(np.unique(ids[train_mask]))
 
     # Scale the data for use in the model. Use StandardScaler to 
     # fit the training set, then transform both the training
@@ -125,11 +146,18 @@ def ActivityRecognitionDataset(
     X_train_raw = X[train_mask]
     X_test_raw = []
     Y_test = []
+    X_val_raw = []
+    Y_val = []
     #test_mask
-    for entry in range(cross_val_subject_id_start, cross_val_subject_id_start+5):
+    for entry in unique_holdout_idx[len(unique_holdout_idx)//2:]: #range(cross_val_subject_id_start, cross_val_subject_id_start+5):
         test_mask = ids == unique_ids[entry]
         X_test_raw.append(X[test_mask])
         Y_test.append(one_hot_labels[test_mask])
+    
+    for entry in unique_holdout_idx[:len(unique_holdout_idx)//2]: #range(cross_val_subject_id_start, cross_val_subject_id_start+5):
+        val_mask = ids == unique_ids[entry]
+        X_val_raw.append(X[val_mask])
+        Y_val.append(one_hot_labels[val_mask])
         
     
     fn = lambda array, elem: np.where(array == elem)[0][0]
@@ -159,8 +187,22 @@ def ActivityRecognitionDataset(
             num_elements_test+= entry.shape[0]
             num_elem_test_arr.append(entry.shape[0])
             X_test.append(X_test_i.reshape((entry.shape[0], entry.shape[2], entry.shape[1])))
+            
+        X_val =[]
+        num_elements_val=0
+        num_elem_val_arr = []
+        for idx, entry in enumerate(X_val_raw):
+            X_val_i = scaler.transform(
+                entry.reshape(
+                    (entry.shape[0] * entry.shape[1], 
+                    entry.shape[2])
+                )
+            )
+            num_elements_val+= entry.shape[0]
+            num_elem_val_arr.append(entry.shape[0])
+            X_val.append(X_val_i.reshape((entry.shape[0], entry.shape[2], entry.shape[1])))
     else:
-        X_train, X_test = X_train_raw, X_test_raw
+        X_train, X_test, X_val = X_train_raw, X_test_raw, X_val_raw
         
     train_dataset = torch.utils.data.TensorDataset(
                                                                         torch.from_numpy(X_train), 
@@ -175,6 +217,15 @@ def ActivityRecognitionDataset(
                         Y_test[idx]
                 )
             )
+            
+    val_dataset = []
+    for idx,entry in enumerate(X_val):
+                val_dataset.append(
+                    torch.utils.data.TensorDataset(
+                        torch.from_numpy(entry), 
+                        Y_val[idx]
+                )
+            )
 
     return {
                'train': torch.utils.data.DataLoader(
@@ -183,8 +234,9 @@ def ActivityRecognitionDataset(
                    shuffle=True,
                    num_workers=4
                ),
-               'test':  test_dataset
-           }, len(label_names),  num_elements_test, num_elem_test_arr
+               'test':  test_dataset,
+               'validation': val_dataset
+           }, len(label_names),  num_elements_test, num_elem_test_arr, num_elements_val, num_elem_val_arr
    #total test size, size of each  test set in array
 
 
@@ -254,7 +306,7 @@ def TamilLettersDataset(
                                                             .shuffle(100)\
                                                             .to_tuple("png","cls")\
                                                             .batched(batch_size)
-        with tarfile.open(os.path.join(tamil_directory,url)) as archive:
+        with tarfile.open(url) as archive:
                 size += sum(1 for member in archive if member.isreg())
         num_elements_test += size
         num_elem_test_arr.append(size//2)
@@ -262,6 +314,15 @@ def TamilLettersDataset(
             
     return {
                'train': dataloader,
-               'test':  test_dataset
+               'test':  test_dataset[:step//2],
+               'validation' : test_dataset[step//2:]
+               
            }, len(labels),  num_elements_test//2, num_elem_test_arr, train_size
-   #number of labels, total test size, size of each  test set in array   
+   #number of labels, total test size, size of each  test set in array  
+   
+   
+if __name__ == "__main__":
+    print(Path(__file__).resolve().parent.parent)
+    #loaders, num_classes, num_elements_test , num_elem_test_arr = ActivityRecognitionDataset(cross_val_subject_id_start = 25)
+    loaders, num_classes, num_elements_test , num_elem_test_arr, _ = TamilLettersDataset(cross_val_subject_id_start = 25)
+    print(len(loaders)) 

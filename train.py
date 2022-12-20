@@ -18,7 +18,7 @@ parser.add_argument('--dir', type=str, default='/tmp/curve/', metavar='DIR',
                     help='training directory (default: /tmp/curve/)')
 
 parser.add_argument('--dataset', type=str, default='ActRec', metavar='DATASET',
-                    help='dataset name (default: ActRec)')
+                    help='dataset name ActRec|Tamil (default: ActRec)')
 parser.add_argument('--subject', type=int, default=25, 
                     help='subject to test (default: 25)')
 parser.add_argument('--use_test', action='store_true',
@@ -34,7 +34,7 @@ parser.add_argument('--num-workers', type=int, default=4, metavar='N',
 parser.add_argument('--var_training', help='use special training for variance among subjects or not',
                     action='store_true')
 parser.add_argument('--model', type=str, default=None, metavar='MODEL', required=True,
-                    help='model name (default: None)')
+                    help='model name ActRec|ConvFC (default: None)')
 
 parser.add_argument('--curve', type=str, default=None, metavar='CURVE',
                     help='curve type to use (default: None)')
@@ -81,7 +81,7 @@ torch.cuda.manual_seed(args.seed)
 
 one_hot = True
 if args.dataset == "ActRec": 
-    loaders, num_classes, num_elements_test , num_elem_test_arr= data_loading.ActivityRecognitionDataset(\
+    loaders, num_classes, num_elements_test , num_elem_test_arr, _, _= data_loading.ActivityRecognitionDataset(\
                                                                                                                         batch_size=args.batch_size,\
                                                                                                                         cross_val_subject_id_start= args.subject)
 else:
@@ -90,7 +90,6 @@ else:
                                                                                                                         cross_val_subject_id_start= args.subject)
     one_hot = False
 
-#print(loaders)
 architecture = getattr(models, args.model)
 #print(num_classes);
 
@@ -172,7 +171,7 @@ for epoch in range(start_epoch, args.epochs + 1):
     lr = learning_rate_schedule(args.lr, epoch, args.epochs)
     utils.adjust_learning_rate(optimizer, lr)
     #var_training = False #if args.curve is None else True
-    #print("var_training:{}".format(var_training))
+    #print("var_training:{}".format(args.var_training))
     if args.dataset == "ActRec": 
         train_res = utils.train(loaders['train'], model, optimizer, criterion, regularizer, var_training = args.var_training, alpha = loss_alpha[epoch])
     else:

@@ -59,7 +59,7 @@ torch.backends.cudnn.benchmark = True
 
 one_hot = True
 if args.dataset == "ActRec": 
-    loaders, num_classes, num_elements_test , num_elem_test_arr= data_loading.ActivityRecognitionDataset(\
+    loaders, num_classes, num_elements_test , num_elem_test_arr, num_elements_val, num_elem_val_arr = data_loading.ActivityRecognitionDataset(\
                                                                                                                         batch_size=args.batch_size,\
                                                                                                                         cross_val_subject_id_start= args.subject)
 else:
@@ -77,7 +77,7 @@ model = curves.CurveNet(
     args.num_bends,
     architecture_kwargs=architecture.kwargs,
 )
-model.cpu()
+model.cuda()
 checkpoint = torch.load(args.ckpt)
 model.load_state_dict(checkpoint['model_state'], strict=False)
 
@@ -89,17 +89,22 @@ ts = np.linspace(0.0, 1.0, T)
 tr_loss = np.zeros(T)
 tr_nll = np.zeros(T)
 tr_acc = np.zeros(T)
+tr_err = np.zeros(T)
 te_loss = np.zeros(T)
 te_nll = np.zeros(T)
 te_acc = np.zeros(T)
-tr_err = np.zeros(T)
 te_err = np.zeros(T)
 te_std = np.zeros(T)
+val_loss = np.zeros(T)
+val_nll = np.zeros(T)
+val_acc = np.zeros(T)
+val_err = np.zeros(T)
+val_std = np.zeros(T)
 dl = np.zeros(T)
 
 previous_weights = None
 
-columns = ['t', 'Train loss', 'Train nll', 'Train error (%)', 'Test nll', 'Test error (%)', 'Test std','Subj_0','Subj_1', 'Subj_2', 'Subj_3', 'Subj_4']
+columns = ['t', 'Train loss', 'Train nll', 'Train error (%)','Val nll', 'Val error (%)', 'Val std','Val_Subj_0','Val_Subj_1', 'Val_Subj_2', 'Val_Subj_3', 'Val_Subj_4', 'Test nll', 'Test error (%)', 'Test std','Test_Subj_0','Test_Subj_1', 'Test_Subj_2', 'Test_Subj_3', 'Test_Subj_4']
 if  args.dataset == "Tamil": 
     for idx in range(5, 24):
         columns.append('Subj_{}'.format(idx))
@@ -113,7 +118,7 @@ with open(filename, 'w') as csvfile:
     # writing the fields  
     csvwriter.writerow(columns)  
     
-t = torch.FloatTensor([0.0]).cpu()
+t = torch.FloatTensor([0.0]).cuda()
 for i, t_value in enumerate(ts):
     t.data.fill_(t_value)
     weights = model.weights(t)
@@ -128,6 +133,9 @@ for i, t_value in enumerate(ts):
     
     if args.dataset == "Tamil":
             args.batch_size = None
+            
+    val_res = utils.multi_test(loaders['validation'], model, criterion, num_elements_val, num_elem_val_arr, regularizer,\
+                                                 batch_size=args.batch_size, one_hot = one_hot,t=t)
     te_res = utils.multi_test(loaders['test'], model, criterion, num_elements_test, num_elem_test_arr, regularizer,\
                                                  batch_size=args.batch_size, one_hot = one_hot,t=t)
     tr_loss[i] = tr_res['loss']
@@ -139,12 +147,25 @@ for i, t_value in enumerate(ts):
     te_acc[i] = te_res['accuracy']
     te_err[i] = 100.0 - te_acc[i]
     te_std[i] = te_res['std']
+    
+    val_loss[i] = val_res['loss']
+    val_nll[i] = val_res['nll']
+    val_acc[i] = val_res['accuracy']
+    val_err[i] = 100.0 - val_acc[i]
+    val_std[i] = val_res['std']
 
-    values = [t, tr_loss[i], tr_nll[i], tr_err[i], te_nll[i], te_err[i], te_std[i] ] #,te_res['test_arr'][0],te_res['test_arr'][1],\
+    values = [t, tr_loss[i], tr_nll[i], tr_err[i], val_nll[i], val_err[i], val_std[i] ] #,te_res['test_arr'][0],te_res['test_arr'][1],\
     #te_res['test_arr'][2],te_res['test_arr'][3],te_res['test_arr'][4]]
+    for entry in val_res['test_arr']:
+        #print(entry)
+        values.append(entry)
+        
+    values.extend([te_nll[i], te_err[i], te_std[i] ])
+    
     for entry in te_res['test_arr']:
         #print(entry)
         values.append(entry)
+    
     table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='10.4f')
     if i % 40 == 0:
         table = table.split('\n')
