@@ -283,7 +283,6 @@ def TamilLettersDataset(
     usrs = ",".join(map(str,arr))
     
     url_train = os.path.join(tamil_directory,"usr_{"+usrs+"}.tar" )   
-    #url_train = os.path.join(tamil_directory,"usr_16.tar" )   
     preproc = transforms.Compose([
         transforms.Grayscale(num_output_channels=1),
         transforms.ToTensor(),
@@ -323,6 +322,5 @@ def TamilLettersDataset(
    
 if __name__ == "__main__":
     print(Path(__file__).resolve().parent.parent)
-    #loaders, num_classes, num_elements_test , num_elem_test_arr = ActivityRecognitionDataset(cross_val_subject_id_start = 25)
     loaders, num_classes, num_elements_test , num_elem_test_arr, _ = TamilLettersDataset(cross_val_subject_id_start = 25)
     print(len(loaders)) 
