@@ -55,7 +55,7 @@ python find_best_point.py --dir=<LOCATION_TO_CSV> --beta=<beta_value> --subject=
 
 This will print average accuracy, evenness index, and F_beta for 3 points: start and end points of a curve, as well as the pareto-optimal point.
 
-# Available datasets
+## Available datasets
 
 1. Tamil [Isolated Handwritten Tamil Character Dataset hpl-tamil-iso-char](http://shiftleft.com/mirrors/www.hpl.hp.com/india/research/penhw-resources/tamil-iso-char.html)
   1.1 Available in this repository
