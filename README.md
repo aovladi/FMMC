@@ -29,14 +29,18 @@ This stage is based on [Mode Connectivity](https://github.com/timgaripov/dnn-mod
 To create the set of candidate models, please, follow curve finding procedure, described in ][here](https://github.com/timgaripov/dnn-mode-connectivity#curve-finding). The final step ["Evaluating the curves"]("https://github.com/timgaripov/dnn-mode-connectivity#evaluating-the-curves") will create a .csv file of the form <DATASET_NAME>_Subject_<NUMBER> in the provided direction (--dir argument).
  
 #### Examples
-To train an instance of a model for Tamil dataset:
+To train an instance of a model for Tamil dataset:<br>
   
-  ```python3 train.py --dir="<PATH/TP/STORE/MODEL>" --dataset=Tamil --model=ConvFC --batch_size=256 --subject=25 --epochs=80 --save_freq=20  --gpu=1 --seed=77```
+  ```
+  python3 train.py --dir="<PATH/TP/STORE/MODEL>" --dataset=Tamil --model=ConvFC --batch_size=256 --subject=25 --epochs=80 --save_freq=20  --gpu=1 --seed=77
+  ```
   
-To connect local optima with a curve:
-  ``` python3 train.py --dir="<PATH/TO/STORE/CURVE>" --dataset=Tamil --model=ConvFC --batch_size=256 --subject=25 --curve=Bezier --num_bends=3  --init_start="<CHECKPOINT 1>" --init_end="<CHECKPOINT 2>" --fix_start --fix_end --epochs=150 --lr=0.015 --wd=5e-4 ```
+To connect local optima with a curve: <br>
+  ``` 
+  python3 train.py --dir="<PATH/TO/STORE/CURVE>" --dataset=Tamil --model=ConvFC --batch_size=256 --subject=25 --curve=Bezier --num_bends=3  --init_start="<CHECKPOINT 1>" --init_end="<CHECKPOINT 2>" --fix_start --fix_end --epochs=150 --lr=0.015 --wd=5e-4 
+  ```
 
-To create a `csv` file, used for Multi-Objective optimization
+To create a `csv` file, used for Multi-Objective optimization <br>
   
   ```
   python3 eval_curve.py --dir="<PATH/TO/STORE/EVALUATION>"" --dataset=Tamil --batch_size=256 --subject=25 --model=ConvFC --wd=5e-4 --curve=Bezier --num_bends=3 --ckpt="CURVE_CHECKPOINT" --num_points=50```
@@ -44,10 +48,9 @@ To create a `csv` file, used for Multi-Objective optimization
 
 ### Multi-Objective optimization
 
-To find a pareto-optimal solution run
+To find a pareto-optimal solution run <br>
 ```
 python find_best_point.py --dir=<LOCATION_TO_CSV> --beta=<beta_value> --subject=<subject_number> --dataset=<Tamil|ActRec> 
-
 ```
 
 This will print average accuracy, evenness index, and F_beta for 3 points: start and end points of a curve, as well as the pareto-optimal point.
