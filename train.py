@@ -91,7 +91,6 @@ else:
     one_hot = False
 
 architecture = getattr(models, args.model)
-#print(num_classes);
 
 if args.curve is None:
     model = architecture.base(num_classes=num_classes, **architecture.kwargs)
@@ -120,7 +119,6 @@ else:
             print('Linear initialization.')
             model.init_linear()
 model.cpu()
-#print(num_elements_test)
 
 def learning_rate_schedule(base_lr, epoch, total_epochs):
     alpha = epoch / total_epochs
@@ -165,7 +163,6 @@ test_res = {'loss': None, 'accuracy': None, 'nll': None}
 loss_alpha = np.linspace(0.0, 1.0, args.epochs + 1)
 bs = args.batch_size
 for epoch in range(start_epoch, args.epochs + 1):
-    #print(epoch)
     time_ep = time.time()
 
     lr = learning_rate_schedule(args.lr, epoch, args.epochs)
